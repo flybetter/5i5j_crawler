@@ -1,20 +1,41 @@
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals
+
+
 from selenium import webdriver
 import logging
 import re
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import queue
+
 from selenium.webdriver.common.keys import Keys
 
 import json
 
 import stomp
 
-# https://nj.5i5j.com/ershoufang/n100/
+from functools import wraps
+
+import traceback
+
+import sys
+reload(sys)
+sys.setdefaultencoding('utf-8')
 
 chromeOptions = webdriver.ChromeOptions()
 
+
+def decorator(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            result = func(*args, **kwargs)
+            return result
+        except Exception as e:
+            traceback.print_exc()
+
+    return wrapper
 
 class BrowserEngine(object):
 
@@ -28,7 +49,7 @@ class BrowserEngine(object):
         self.browser = webdriver.Chrome(options=chromeOptions)
         self.next_page = url
         # self.links = list()
-        self.conn = stomp.Connection10([('192.168.105.105', 61613)], auto_content_length=False)
+        self.conn = stomp.Connection10([('192.168.10.221', 61613)], auto_content_length=False)
         self.conn.start()
         self.conn.connect()
 
@@ -49,9 +70,12 @@ class BrowserEngine(object):
         for link in links:
             self.get_data(link)
 
+    @decorator
     def get_data(self, url):
 
         body = dict()
+
+        print(url)
 
         self.browser.get(url)
 
@@ -74,7 +98,6 @@ class BrowserEngine(object):
         body['title'] = title
 
         district = str(self.browser.find_element_by_xpath("/html/body/div[2]/div/div[1]/a[3]").text).replace("二手房", "")
-
         body['district'] = district
 
         sub_district = str(self.browser.find_element_by_xpath("/html/body/div[2]/div/div[1]/a[4]").text).replace("二手房",
@@ -180,6 +203,8 @@ class BrowserEngine(object):
         print(msg)
 
         self.conn.send("SellHouseQueue", msg)
+
+
 
     def check_next_page(self):
         self.browser.get(self.next_page)
