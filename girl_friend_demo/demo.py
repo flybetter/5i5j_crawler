@@ -9,6 +9,16 @@ from datetime import datetime
 
 import json
 
+import logging
+
+import traceback
+
+from functools import wraps
+
+from selenium.webdriver.chrome.options import Options
+
+chromeOptions = webdriver.ChromeOptions()
+
 
 # 安居客
 
@@ -34,6 +44,18 @@ import json
 # 15.朝向
 
 
+def decorator(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            result = func(*args, **kwargs)
+            return result
+        except Exception as e:
+            logging.error(traceback.print_exc())
+
+    return wrapper
+
+
 class Crawler(object):
 
     def __init__(self):
@@ -46,7 +68,12 @@ class Crawler(object):
         )
         SessionFactory = sessionmaker(bind=engine)
         self.session = SessionFactory()
-        self.browser = webdriver.Chrome()
+
+        chromeOptions.add_argument(
+            'user-agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10.12; rv:67.0) Gecko/20100101 Firefox/67.0"')
+
+        self.browser = webdriver.Chrome(options=chromeOptions)
+
         self.next_url = None
 
     def action(self):
@@ -54,13 +81,17 @@ class Crawler(object):
 
     def ganji_action(self):
         self.next_url = "http://nj.ganji.com/zufang/pn1/?key=佳和园"
+        # link = "http://nj.ganji.com/zufang/38937057428249x.shtml"
 
         while self.next_url is not None:
             links = self.ganji_list()
             for link in links:
                 self.ganji_data(link)
 
+        self.ganji_data(link)
+
     def ganji_list(self):
+
         self.browser.get(self.next_url)
 
         matcher = re.search("(\\d+)", self.next_url)
@@ -71,11 +102,16 @@ class Crawler(object):
 
         divs = self.browser.find_elements_by_xpath("//dt[@class='img']/div[@class='img-wrap']/a")
 
+        if divs is None:
+            self.browser.quit()
+            self.session.close()
+
         return [div.get_attribute("href") for div in divs]
 
+    @decorator
     def ganji_data(self, url):
+        print(url)
         self.browser.get(url)
-
         body = dict()
 
         body["id"] = 0
@@ -84,35 +120,32 @@ class Crawler(object):
         body["url"] = self.browser.current_url
         body["title"] = self.browser.find_element_by_class_name("card-title").text
         body["price"] = self.browser.find_element_by_class_name("price").text
-        houseStruct = self.browser.find_element_by_xpath(
-            "//ul[@class='er-list f-clear']/li[@class='item f-fl'][0]/span[@class='content']").text
+        houseStruct = self.browser.find_elements_by_class_name("content")[0].text
         counts = re.split('[\u4e00-\u9fa5]', houseStruct)
         body["room_count"] = counts[0]
         body["hall_count"] = counts[1]
         body["toilet_count"] = counts[2]
-        body["forward"] = self.browser.find_element_by_xpath(
-            "//ul[@class='er-list f-clear']/li[@class='item f-fl'][2]/span[@class='content']").text
-        body["decoration"] = self.browser.find_element_by_xpath(
-            "//ul[@class='er-list f-clear']/li[@class='item f-fl'][4]/span[@class='content']").text
-
-        detail = self.browser.find_element_by_xpath(
-            "//ul[@class='er-list f-clear']/li[@class='item f-fl'][1]/span[@class='content']").text
-        details = re.split('\s', detail)
-
-        body["area"] = float(str(details[1]).replace('㎡', ""))
-        body["pay_way"] = self.browser.find_element_by_class_name('unit')
+        body["forward"] = self.browser.find_elements_by_class_name("content")[2].text
+        body["decoration"] = self.browser.find_elements_by_class_name("content")[4].text
+        detail = self.browser.find_elements_by_class_name("content")[1].text
+        details = re.split('  ', detail)
+        body["area"] = float(str(details[1]).replace('㎡', "").strip())
+        body["pay_way"] = self.browser.find_element_by_class_name('unit').text
         body["create_date"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         body["share_way"] = details[0]
         body["public_time"] = self.browser.find_element_by_class_name("date").text
         body["linkman"] = self.browser.find_element_by_xpath("//div[@class='name']/a").text
-        body["description"] = self.browser.find_element_by_class_name("item").text
+        body["description"] = self.browser.find_element_by_xpath("//div[@class='describe']/div").text
 
         if "女生" in body["linkman"] or "男士" in body["linkman"] or "小姐" in body["linkman"]:
             body["source"] = 1
         else:
             body["source"] = 2
 
-        print(json.dumps(body, ensure_ascii=False, ))
+        print(json.dumps(body, ensure_ascii=False))
+
+        self.session.e
+        self.session.commit()
 
     def save(self):
         pass
