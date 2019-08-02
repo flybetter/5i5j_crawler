@@ -15,9 +15,17 @@ import traceback
 
 from functools import wraps
 
+from sqlalchemy import exc
+
+from selenium.common.exceptions import NoSuchElementException
+
+import time
+
+from retrying import retry
+
 from selenium.webdriver.chrome.options import Options
 
-chromeOptions = webdriver.ChromeOptions()
+option = webdriver.ChromeOptions()
 
 
 # 安居客
@@ -52,6 +60,7 @@ def decorator(func):
             return result
         except Exception as e:
             logging.error(traceback.print_exc())
+            raise e
 
     return wrapper
 
@@ -69,10 +78,23 @@ class Crawler(object):
         SessionFactory = sessionmaker(bind=engine)
         self.session = SessionFactory()
 
-        chromeOptions.add_argument(
+        option.add_argument(
             'user-agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10.12; rv:67.0) Gecko/20100101 Firefox/67.0"')
+        # option.setPageLoadStrategy(PageLoadStrategy.NONE)
 
-        self.browser = webdriver.Chrome(options=chromeOptions)
+        prefs = {
+            'profile.default_content_setting_values': {
+                'images': 2
+                # 'javascript': 2
+            }
+        }
+        # option.add_argument(' blink-settings=imagesEnabled=false')
+        #
+        # option.add_argument("--disable-javascript")
+
+        option.add_experimental_option('prefs', prefs)
+
+        self.browser = webdriver.Chrome(options=option)
 
         self.next_url = None
 
@@ -80,13 +102,27 @@ class Crawler(object):
         self.ganji_action()
 
     def ganji_action(self):
-        self.next_url = "http://nj.ganji.com/zufang/pn1/?key=佳和园"
+        self.next_url = "http://nj.ganji.com/zufang/pn3/?key=佳和园"
         # link = "http://nj.ganji.com/zufang/38937057428249x.shtml"
 
         while self.next_url is not None:
             links = self.ganji_list()
             for link in links:
-                self.ganji_data(link)
+
+                flag = True
+                for i in range(3):
+                    try:
+                        self.ganji_data(link)
+                        flag = True
+                        break
+                    except exc.IntegrityError:
+                        break
+                    except:
+                        time.sleep(2)
+                        flag = False
+
+                if not flag:
+                    print("still not work:" + link)
 
         self.ganji_data(link)
 
@@ -94,24 +130,34 @@ class Crawler(object):
 
         self.browser.get(self.next_url)
 
-        matcher = re.search("(\\d+)", self.next_url)
+        matcher = re.search("(\\d+?)", self.next_url)
 
-        if matcher.group(1) is None:
+        if matcher.group(1) is not None:
             num = int(matcher.group(1)) + 1
-            self.next_page = re.sub('(\\d+)', num, self.next_page)
+
+            if num is 26:
+                self.browser.quit()
+            self.next_url = re.sub('\\d+?', str(num), self.next_url)
 
         divs = self.browser.find_elements_by_xpath("//dt[@class='img']/div[@class='img-wrap']/a")
 
+        print(len(divs))
         if divs is None:
             self.browser.quit()
             self.session.close()
 
-        return [div.get_attribute("href") for div in divs]
+        return filter(lambda x: "fanggongyu" not in str(x), [div.get_attribute("href") for div in divs])
+        # return [div.get_attribute("href") for div in divs]
 
+    # @retry(stop_max_attempt_number=3)
     @decorator
     def ganji_data(self, url):
         print(url)
+        print(self.next_url)
         self.browser.get(url)
+        time.sleep(5)
+        print("start....")
+        # self.browser.implicitly_wait(5)
         body = dict()
 
         body["id"] = 0
@@ -137,14 +183,25 @@ class Crawler(object):
         body["linkman"] = self.browser.find_element_by_xpath("//div[@class='name']/a").text
         body["description"] = self.browser.find_element_by_xpath("//div[@class='describe']/div").text
 
-        if "女生" in body["linkman"] or "男士" in body["linkman"] or "小姐" in body["linkman"]:
+        if "女士" in body["linkman"] or "先生" in body["linkman"] or "小姐" in body["linkman"]:
             body["source"] = 1
         else:
             body["source"] = 2
 
+        body["phone"] = self.browser.find_element_by_class_name("phone_num").text
+
         print(json.dumps(body, ensure_ascii=False))
 
-        self.session.e
+        # placeholders = ',:'.join(body.keys())
+        # columns = ', '.join(body.keys())
+        # sql = "INSERT INTO %s ( %s ) VALUES ( %s )" % ('rent', columns, placeholders)
+        # print(sql)
+        # sql2="INSERT INTO sell_5i5j ( floorCode, totalPrice, platformId, blockId, roomCount, decoration, listTime, totalFloor, toiletCount, id, district, title, hasLift, forward, cityCode, blockName, subDistrict, buildArea, unitPrice, propertyRightYear, houseId, url, buildYear, hallCount ) VALUES ( %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s )" % ( list( body.values()))
+        # print(sql2)
+        self.session.execute(
+            "INSERT INTO rent ( id, platform_id, house_id, url, title, price, room_count, hall_count, toilet_count, forward, decoration, area, pay_way, create_date, share_way, public_time, linkman, description, source ,phone) VALUES ( id,:platform_id,:house_id,:url,:title,:price,:room_count,:hall_count,:toilet_count,:forward,:decoration,:area,:pay_way,:create_date,:share_way,:public_time,:linkman,:description,:source,:phone )",
+            body)
+
         self.session.commit()
 
     def save(self):
