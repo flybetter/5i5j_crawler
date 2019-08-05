@@ -17,15 +17,17 @@ from functools import wraps
 
 from sqlalchemy import exc
 
+import urllib3
+
 from selenium.common.exceptions import NoSuchElementException
 
 import time
 
-from retrying import retry
-
 from selenium.webdriver.chrome.options import Options
 
 option = webdriver.ChromeOptions()
+
+import sys
 
 
 # 安居客
@@ -84,8 +86,8 @@ class Crawler(object):
 
         prefs = {
             'profile.default_content_setting_values': {
-                'images': 2
-                # 'javascript': 2
+                'images': 2,
+                'javascript': 2
             }
         }
         # option.add_argument(' blink-settings=imagesEnabled=false')
@@ -96,13 +98,16 @@ class Crawler(object):
 
         self.browser = webdriver.Chrome(options=option)
 
+        self.browser.implicitly_wait(10)
+        self.browser.set_page_load_timeout(10)
+
         self.next_url = None
 
     def action(self):
         self.ganji_action()
 
     def ganji_action(self):
-        self.next_url = "http://nj.ganji.com/zufang/pn3/?key=佳和园"
+        self.next_url = "http://nj.ganji.com/zufang/pn9/?key=佳和园"
         # link = "http://nj.ganji.com/zufang/38937057428249x.shtml"
 
         while self.next_url is not None:
@@ -119,29 +124,28 @@ class Crawler(object):
                         break
                     except:
                         time.sleep(2)
+                        self.proxy()
                         flag = False
 
                 if not flag:
                     print("still not work:" + link)
 
-        self.ganji_data(link)
-
     def ganji_list(self):
 
         self.browser.get(self.next_url)
 
-        matcher = re.search("(\\d+?)", self.next_url)
+        matcher = re.search("(\\d+)/", self.next_url)
 
         if matcher.group(1) is not None:
             num = int(matcher.group(1)) + 1
 
-            if num is 26:
-                self.browser.quit()
-            self.next_url = re.sub('\\d+?', str(num), self.next_url)
+            if num is 29:
+                sys.exit()
+            self.next_url = re.sub('\\d+/', str(num) + '/', self.next_url)
+            print(self.next_url)
 
         divs = self.browser.find_elements_by_xpath("//dt[@class='img']/div[@class='img-wrap']/a")
 
-        print(len(divs))
         if divs is None:
             self.browser.quit()
             self.session.close()
@@ -155,9 +159,10 @@ class Crawler(object):
         print(url)
         print(self.next_url)
         self.browser.get(url)
-        time.sleep(5)
-        print("start....")
-        # self.browser.implicitly_wait(5)
+
+        if "firewall" in self.browser.current_url:
+            raise Exception("firwall")
+
         body = dict()
 
         body["id"] = 0
@@ -206,6 +211,37 @@ class Crawler(object):
 
     def save(self):
         pass
+
+    def proxy(self):
+        url = 'http://api.ip.data5u.com/dynamic/get.html?order=1e0fba269c82476195e5df6329007cea&ttl=1&json=1&sep=3'
+        http = urllib3.PoolManager()
+        # 通过request()方法创建一个请求：
+        r = http.request('GET', url)
+        object = json.loads(r.data.decode())
+
+        self.browser.quit()
+
+        chromeOptions = webdriver.ChromeOptions()
+        chromeOptions.add_argument(
+            '--proxy-server=http://' + str(object["data"][0]["ip"]) + ':' + str(object["data"][0]["port"]) + '')
+        chromeOptions.add_argument(
+            'user-agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10.12; rv:67.0) Gecko/20100101 Firefox/67.0"')
+        # option.setPageLoadStrategy(PageLoadStrategy.NONE)
+
+        prefs = {
+            'profile.default_content_setting_values': {
+                'images': 2,
+                'javascript': 2
+            }
+        }
+        # option.add_argument(' blink-settings=imagesEnabled=false')
+        #
+        # option.add_argument("--disable-javascript")
+
+        chromeOptions.add_experimental_option('prefs', prefs)
+        self.browser = webdriver.Chrome(options=chromeOptions)
+        self.browser.implicitly_wait(10)
+        self.browser.set_page_load_timeout(10)
 
 
 if __name__ == '__main__':
