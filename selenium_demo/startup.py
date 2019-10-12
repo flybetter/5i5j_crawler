@@ -28,7 +28,7 @@ class BrowserEngine(object):
         self.browser = webdriver.Chrome(options=chromeOptions)
         self.next_page = url
         # self.links = list()
-        self.conn = stomp.Connection10([('192.168.105.105', 61613)], auto_content_length=False)
+        self.conn = stomp.Connection10([('192.168.10.221', 61613)], auto_content_length=False)
         self.conn.start()
         self.conn.connect()
 
