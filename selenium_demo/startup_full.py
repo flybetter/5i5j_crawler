@@ -9,11 +9,28 @@ from selenium.webdriver.common.keys import Keys
 
 import json
 
+import traceback
+
+from functools import wraps
+
 import stomp
 
 # https://nj.5i5j.com/ershoufang/n100/
 
 chromeOptions = webdriver.ChromeOptions()
+
+
+def decorator(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            result = func(*args, **kwargs)
+            return result
+        except Exception as e:
+            logging.info(traceback.print_exc())
+            print(traceback.print_exc())
+
+    return wrapper
 
 
 class BrowserEngine(object):
@@ -28,7 +45,7 @@ class BrowserEngine(object):
         self.browser = webdriver.Chrome(options=chromeOptions)
         self.next_page = url
         # self.links = list()
-        self.conn = stomp.Connection10([('192.168.10.221', 61613)], auto_content_length=False)
+        self.conn = stomp.Connection10([('192.168.10.221', 61616)], auto_content_length=False)
         self.conn.start()
         self.conn.connect()
 
@@ -37,6 +54,7 @@ class BrowserEngine(object):
             self.check_next_page()
             self.get_links()
 
+        self.browser.quit()
         self.conn.disconnect()
 
     def get_links(self):
@@ -49,6 +67,7 @@ class BrowserEngine(object):
         for link in links:
             self.get_data(link)
 
+    @decorator
     def get_data(self, url):
 
         body = dict()
@@ -69,41 +88,45 @@ class BrowserEngine(object):
 
         body['houseId'] = houseId
 
-        title = self.browser.find_element_by_xpath("/html/body/div[3]/div[1]/div[1]/h1").text
+        title = self.browser.find_element_by_class_name("house-tit").text
 
         body['title'] = title
 
-        district = str(self.browser.find_element_by_xpath("/html/body/div[2]/div/div[1]/a[3]").text).replace("二手房", "")
+        district = str(self.browser.find_element_by_xpath("//div[@class='zushous']/ul/li[3]/a[1]").text).replace("二手房",
+                                                                                                                 "")
 
         body['district'] = district
 
-        sub_district = str(self.browser.find_element_by_xpath("/html/body/div[2]/div/div[1]/a[4]").text).replace("二手房",
-                                                                                                                 "")
+        sub_district = str(self.browser.find_element_by_xpath("//div[@class='zushous']/ul/li[3]/a[2]").text).replace(
+            "二手房",
+            "")
+
         body['subDistrict'] = sub_district
 
-        block_name = self.browser.find_element_by_xpath("/html/body/div[3]/div[2]/div[2]/div[2]/ul/li[1]/a").text
+        block_name = self.browser.find_element_by_xpath("//div[@class='zushous']/ul/li[1]/a").text
 
         body['blockName'] = block_name
 
         block_id = re.search("(\\d+).html", self.browser.find_element_by_xpath(
-            "/html/body/div[3]/div[2]/div[2]/div[2]/ul/li[1]/a").get_attribute("href")).group(1)
+            "//div[@class='zushous']/ul/li[1]/a").get_attribute("href")).group(1)
 
         body['blockId'] = block_id
 
         total_price = float(
-            self.browser.find_element_by_xpath("/html/body/div[3]/div[2]/div[2]/div[1]/div[1]/div/p[1]").text)
+            self.browser.find_element_by_xpath("//div[@class='de-price fl']/span").text)
 
         body['totalPrice'] = total_price
 
         unit_price = float(
-            self.browser.find_element_by_xpath("/html/body/div[3]/div[2]/div[2]/div[1]/div[2]/div/p[1]").text) * 10000
+            self.browser.find_element_by_xpath("//div[@class='danjia']/span").text) * 10000
 
         body['unitPrice'] = unit_price
 
-        floors = str(self.browser.find_element_by_xpath("/html/body/div[3]/div[2]/div[2]/div[2]/ul/li[2]").text).split(
-            "/")
+        # for text in self.browser.find_elements_by_xpath("//p[@class='houseinfor2']"):
+        #     print(text.text)
 
-        body['subDistrict'] = sub_district
+        floors = str(self.browser.find_element_by_xpath("//p[@class='houseinfor2'][1]").text).split(
+            "/")
 
         total_floor = floors[1].replace("层", "")
 
@@ -119,25 +142,21 @@ class BrowserEngine(object):
 
         body['floorCode'] = floor_code
 
-        forward = str(
-            self.browser.find_element_by_xpath("/html/body/div[3]/div[2]/div[2]/div[2]/ul/li[3]").text).replace("朝向：\n",
-                                                                                                                "")
+        forward = str(self.browser.find_elements_by_xpath("//p[@class='houseinfor1']")[2].text)
 
         body['forward'] = forward
 
-        decoration = str(
-            self.browser.find_element_by_xpath("/html/body/div[3]/div[2]/div[2]/div[2]/ul/li[4]").text).replace("装修：\n",
-                                                                                                                "")
+        decoration = str(self.browser.find_elements_by_xpath("//p[@class='houseinfor2']")[1].text)
 
         body['decoration'] = decoration
 
-        build_area = self.browser.find_element_by_xpath("/html/body/div[3]/div[2]/div[2]/div[1]/div[4]/div/p[1]").text
+        build_area = str(self.browser.find_elements_by_xpath("//p[@class='houseinfor1']")[1].text).replace("m²", "")
 
         body['buildArea'] = build_area
 
         build_year = int(str(
-            self.browser.find_element_by_xpath("/html/body/div[3]/div[2]/div[2]/div[2]/ul/li[6]").text).replace("年代：\n",
-                                                                                                                "").replace(
+            self.browser.find_element_by_xpath("//div[@class='infocon fl']/ul/li[4]/span").text).replace("年代：\n",
+                                                                                                         "").replace(
             "年", ""))
         body['buildYear'] = build_year
 
@@ -150,9 +169,7 @@ class BrowserEngine(object):
         body['propertyRightYear'] = property_right_year
 
         houseStruct = self.browser.find_element_by_xpath(
-            "/html/body/div[3]/div[3]/div[3]/div[1]/div/div[2]/ul/li[1]/span").text
-
-        body['subDistrict'] = sub_district
+            "//div[@class='infocon fl']/ul/li[1]/span").text
 
         counts = re.split('[\u4e00-\u9fa5]', houseStruct)
 
@@ -164,12 +181,14 @@ class BrowserEngine(object):
 
         body['hallCount'] = int(hall_count)
 
-        toliet_count = counts[2]
-
-        body['toiletCount'] = int(toliet_count)
+        if len(counts) == 3:
+            toliet_count = counts[2]
+            body['toiletCount'] = int(toliet_count)
+        else:
+            body['toiletCount'] = 0
 
         list_time = str(self.browser.find_element_by_xpath(
-            "/html/body/div[3]/div[3]/div[3]/div[1]/div/div[2]/ul/li[5]/span").text).replace("-", "")
+            "//div[@class='infocon fl']/ul/li[3]/span").text).replace("-", "")
 
         body['listTime'] = list_time
 
@@ -179,7 +198,9 @@ class BrowserEngine(object):
 
         print(msg)
 
-        self.conn.send("SellHouseQueue", msg)
+        return msg
+
+        # self.conn.send("SellHouseQueue", msg)
 
     def check_next_page(self):
         self.browser.get(self.next_page)
@@ -211,7 +232,7 @@ class BrowserEngine(object):
 
 
 if __name__ == '__main__':
-    demo = BrowserEngine(url="https://nj.5i5j.com/ershoufang/n1/")
+    demo = BrowserEngine(url="https://nj.5i5j.com/ershoufang/n4/")
     demo.action()
 
     # msg = "我爱你中文"
