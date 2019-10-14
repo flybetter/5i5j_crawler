@@ -14,6 +14,8 @@ import traceback
 from functools import wraps
 
 import stomp
+from apscheduler.schedulers.blocking import BlockingScheduler
+import pytz
 
 # https://nj.5i5j.com/ershoufang/n100/
 
@@ -39,19 +41,21 @@ class BrowserEngine(object):
         # chromeOptions.add_argument("--proxy-server=http://117.60.10.29:35787")
         # chromeOptions.add_argument(
         #     'user-agent="Mozilla/5.0 (iPod; U; CPU iPhone OS 2_1 like Mac OS X; ja-jp) AppleWebKit/525.18.1 (KHTML, like Gecko) Version/3.1.1 Mobile/5F137 Safari/525.20"')
-        chromeOptions.add_argument(
-            'user-agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10.12; rv:67.0) Gecko/20100101 Firefox/67.0"')
-
-        self.browser = webdriver.Chrome(options=chromeOptions)
+        # chromeOptions.add_argument(
+        #     'user-agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10.12; rv:67.0) Gecko/20100101 Firefox/67.0"')
+        # chrome_options = webdriver.ChromeOptions()
+        chromeOptions.add_argument('--no-sandbox')
+        chromeOptions.add_argument('--headless')
+        chromeOptions.add_argument('--disable-gpu')
+        self.browser = webdriver.Chrome(chrome_options=chromeOptions)
         self.next_page = url
         # self.links = list()
-        self.conn = stomp.Connection10([('192.168.10.221', 61616)], auto_content_length=False)
+        self.conn = stomp.Connection10([('192.168.10.221', 61613)], auto_content_length=False)
         self.conn.start()
         self.conn.connect()
 
     def action(self):
-        while self.next_page is not None:
-            self.check_next_page()
+        while self.check_next_latest_page():
             self.get_links()
 
         self.browser.quit()
@@ -117,8 +121,8 @@ class BrowserEngine(object):
 
         body['totalPrice'] = total_price
 
-        unit_price = float(
-            self.browser.find_element_by_xpath("//div[@class='danjia']/span").text) * 10000
+        unit_price = round(float(
+            self.browser.find_element_by_xpath("//div[@class='danjia']/span").text) * 10000, 2)
 
         body['unitPrice'] = unit_price
 
@@ -154,10 +158,14 @@ class BrowserEngine(object):
 
         body['buildArea'] = build_area
 
-        build_year = int(str(
-            self.browser.find_element_by_xpath("//div[@class='infocon fl']/ul/li[4]/span").text).replace("年代：\n",
-                                                                                                         "").replace(
-            "年", ""))
+        try:
+            build_year = int(str(
+                self.browser.find_element_by_xpath("//div[@class='infocon fl']/ul/li[4]/span").text).replace("年代：\n",
+                                                                                                             "").replace(
+                "年", ""))
+        except Exception as e:
+            build_year = 0
+
         body['buildYear'] = build_year
 
         has_lift = 0
@@ -198,9 +206,7 @@ class BrowserEngine(object):
 
         print(msg)
 
-        return msg
-
-        # self.conn.send("SellHouseQueue", msg)
+        self.conn.send("SellHouseQueue", msg)
 
     def check_next_page(self):
         self.browser.get(self.next_page)
@@ -219,21 +225,37 @@ class BrowserEngine(object):
         # except Exception as e:
         #     pass
 
+    def check_next_latest_page(self):
+        self.browser.get(self.next_page)
+        items = WebDriverWait(self.browser, 10).until(
+            lambda x: x.find_elements_by_xpath("//div[@class='listX']/p[3]"))
 
-# def send():
-#     browser = webdriver.Chrome()
-#     browser.get('https://nj.5i5j.com/ershoufang/43183776.html')
-#     browser.get('https://nj.5i5j.com/ershoufang/n10000/')
-#     browser.implicitly_wait(100)
-#
-#
-# def Pager():
-#     pass
+        flag_result = False
+        for item in items:
+            if "今天发布" in item.text:
+                flag_result = True
+                break
+
+        if flag_result:
+            mather = re.search('n(\\d+)', self.next_page)
+            num = int(mather.group(1)) + 1
+            self.next_page = re.sub('n(\\d+)', 'n' + str(num), self.next_page)
+            return True
+        else:
+            return False
+
+
+def begin():
+    demo = BrowserEngine(url="https://nj.5i5j.com/ershoufang/o8n1/")
+    demo.action()
 
 
 if __name__ == '__main__':
-    demo = BrowserEngine(url="https://nj.5i5j.com/ershoufang/n4/")
-    demo.action()
+    timez = pytz.timezone('Asia/Shanghai')
+    scheduler = BlockingScheduler(timezone=timez)
+    scheduler.add_executor('processpool')
+    scheduler.add_job(begin, 'cron', hour=4, minute=00, second=00, misfire_grace_time=30)
+    scheduler.start()
 
     # msg = "我爱你中文"
     # conn = stomp.Connection10([('192.168.105.105', 61613)], auto_content_length=False)
