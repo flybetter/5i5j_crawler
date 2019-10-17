@@ -251,10 +251,11 @@ def begin():
 
 
 if __name__ == '__main__':
+
     timez = pytz.timezone('Asia/Shanghai')
     scheduler = BlockingScheduler(timezone=timez)
     scheduler.add_executor('processpool')
-    scheduler.add_job(begin, 'cron', hour=4, minute=00, second=00, misfire_grace_time=30)
+    scheduler.add_job(begin, 'cron', hour=23, minute=00, second=00, misfire_grace_time=30)
     scheduler.start()
 
     # msg = "我爱你中文"
