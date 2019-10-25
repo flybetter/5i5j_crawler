@@ -1,6 +1,15 @@
 version: '2'
 
 services:
+
+  stomp:
+    container_name: stomp
+    image: flybetter/stomp:tmp
+    depends_on:
+    - activemq
+    network_mode: "host"
+    restart: always
+
   activemq:
     container_name: activemq
     image: rmohr/activemq
@@ -18,30 +27,30 @@ services:
 
   house-repo:
     container_name: house-repo
-    image: flybetter/house-repo:v1
+    image: flybetter/house-repo:v2
     network_mode: "host"
-
 
   5i5j:
     container_name: 5i5j
-    image: flybetter/5i5j:v1
+    image: flybetter/5i5j:v2
     network_mode: "host"
-
 
   beike:
     container_name: beike
-    image: flybetter/beike:v1
+    image: flybetter/beike:v2
     network_mode: "host"
 
   century21:
     container_name: century21
-    image: flybetter/century21:v1
+    image: flybetter/century21:v2
     network_mode: "host"
 
   lianjia:
     container_name: lianjia
-    image: flybetter/lianjia:v1
+    image: flybetter/lianjia:v2
     network_mode: "host"
+
+
 
 
 

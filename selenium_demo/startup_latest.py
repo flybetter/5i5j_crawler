@@ -256,7 +256,8 @@ if __name__ == '__main__':
     scheduler = BlockingScheduler(timezone=timez)
     scheduler.add_executor('processpool')
     scheduler.add_job(begin, 'cron', hour=23, minute=00, second=00, misfire_grace_time=30)
-    scheduler.start()
+    # scheduler.start()
+    begin()
 
     # msg = "我爱你中文"
     # conn = stomp.Connection10([('192.168.105.105', 61613)], auto_content_length=False)
