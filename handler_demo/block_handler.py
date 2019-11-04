@@ -67,7 +67,7 @@ def filter_blockName(blockName):
 
 def mysql_df():
     global mysql_df
-    sql = "select id,district,address,blockshowname,buildarea,floor,totalfloor,price,averprice,room from sell where is_real_house=1"
+    sql = "select id ,blockname from block"
     engine = create_engine(
         "mysql+pymysql://root:idontcare@202.102.74.70/house?charset=utf8",
         max_overflow=0,
@@ -100,7 +100,7 @@ def begin():
     conn.set_listener('', MyListener())
     conn.start()
     conn.connect(wait=True)
-    conn.subscribe(destination='/queue/handler', ack=1)
+    conn.subscribe(destination='/queue/block_compare', ack=1)
     time.sleep(60 * 60 * 20)
     conn.disconnect()
 
