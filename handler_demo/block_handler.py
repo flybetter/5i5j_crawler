@@ -21,53 +21,26 @@ def save(df):
         pool_recycle=-1
     )
 
-    df.to_sql('sell_compare', con=engine, if_exists='append', index=False)
-
-
-def custom(df, temp):
-    area_parameter = np.maximum(35 - np.abs(df['buildarea'] - temp.loc[0, 'buildArea']) / 2 * 0.1 * 35, 0)
-
-    model_parameter = np.maximum(30 - np.abs(df['room'] - temp.loc[0, 'roomCount']) * 0.5 * 30, 0)
-
-    price_parameter = np.maximum(20 - np.abs(df['price'] - temp.loc[0, 'totalPrice']) * 0.1 * 20, 0)
-
-    list = range(df['totalfloor'])
-
-    divide = round(df['totalfloor'] / 3)
-
-    sub_lists = [list[i:i + divide] for i in range(df['totalfloor']) if i % divide == 0]
-
-    floor_parameter = 0
-
-    for i, v in enumerate(sub_lists):
-        if df['floor'] in v:
-            if i + 1 == temp.loc[0, 'floorCode']:
-                floor_parameter = 15
-
-    df['percent'] = round(area_parameter + model_parameter + price_parameter + floor_parameter)
-    return df
+    df.to_sql('block_compare', con=engine, if_exists='append', index=False)
 
 
 def compare(tmp_df):
     blockName = tmp_df.loc[0, 'blockName']
     filter_df = filter_blockName(blockName)
     if len(filter_df) > 0:
-        filter_df = filter_df.apply(custom, args=(tmp_df,), axis=1)
-        filter_df = filter_df.reset_index()
-        target = filter_df.iloc[filter_df['percent'].idxmax()]
-        tmp_df['percent'] = target['percent']
-        tmp_df['official_id'] = target['id']
+        tmp_df['local_block_id'] = filter_df.loc[filter_df.index.values[0], 'local_block_id']
+        tmp_df['local_block_name'] = filter_df.loc[filter_df.index.values[0], 'local_block_name']
     return tmp_df
 
 
 def filter_blockName(blockName):
-    filter_df = mysql_df[mysql_df['blockshowname'] == blockName]
+    filter_df = mysql_df[mysql_df['local_block_name'] == blockName]
     return filter_df
 
 
 def mysql_df():
     global mysql_df
-    sql = "select id ,blockname from block"
+    sql = "select id as local_block_id  ,blockname as local_block_name from block"
     engine = create_engine(
         "mysql+pymysql://root:idontcare@202.102.74.70/house?charset=utf8",
         max_overflow=0,
@@ -87,7 +60,6 @@ class MyListener(object):
         print('received a message %s' % message)
         try:
             df = json_normalize(json.loads(message))
-            df['buildArea'] = pd.to_numeric(df['buildArea'])
             save_df = compare(df)
             save(save_df)
         except:

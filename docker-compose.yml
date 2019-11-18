@@ -4,11 +4,20 @@ services:
 
   stomp:
     container_name: stomp
-    image: flybetter/stomp:tmp
+    image: flybetter/stomp:v2
     depends_on:
     - activemq
     network_mode: "host"
     restart: always
+
+  blockCompare:
+    container_name: block_handler
+    image: flybetter/block_handler:v1
+    depends_on:
+    - activemq
+    network_mode: "host"
+    restart: always
+
 
   activemq:
     container_name: activemq
@@ -27,7 +36,7 @@ services:
 
   house-repo:
     container_name: house-repo
-    image: flybetter/house-repo:v2
+    image: flybetter/house-repo:v3
     network_mode: "host"
 
   5i5j:

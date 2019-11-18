@@ -35,15 +35,30 @@ def test():
     conn = stomp.Connection10([('192.168.10.109', 61613)])
     conn.connect()
     conn.send(
-        body='{"blockId": "277100", "blockName": "德盈国际广场", "buildArea": "37", "buildYear": 0, "cityCode": "nj","decoration": "中装", "district": "雨花台", "floorCode": 2, "forward": "东", "hallCount": 1, "hasLift": 0,"houseId": "43344050", "id": 0, "listTime": "20191022", "platformId": 5, "propertyRightYear": 0, "roomCount": 1,"subDistrict": "能仁里", "title": "德盈国际 精装单室套 中间楼层 采光好", "toiletCount": 0, "totalFloor": 29, "totalPrice": 118.0,"unitPrice": 31900.0, "url": "https://nj.5i5j.com/ershoufang/43344050.html"}',
-        destination='/queue/handler')
+        body='{"cityCode": "nj", "platformId": 1, "blockName": "大地伊丽雅特湾", "blockId": "2511053949548"}',
+        destination='/queue/block_compare')
     time.sleep(2)
     conn.disconnect()
 
 
+def block_test():
+    sql = "select city_code as cityCode , platform_id as platformId ,block_name as blockName ,block_id as blockId from block limit 100"
+    engine = create_engine(
+        "mysql+pymysql://root:idontcare@192.168.105.106/house_developcenter?charset=utf8",
+        max_overflow=0,
+        pool_size=5,
+        pool_timeout=30,
+        pool_recycle=-1
+    )
+    df = pd.read_sql(sql=sql, con=engine)
+    return df
+
+
 if __name__ == '__main__':
-    df = get_mysql()
-    datas = df.to_json(orient='records')
-    objects = json.loads(datas)
-    for object in objects:
-        print(json.dumps(object, ensure_ascii=False))
+    # df = block_test()
+    # datas = df.to_json(orient='records')
+    # objects = json.loads(datas)
+    # for object in objects:
+    #     print(json.dumps(object, ensure_ascii=False))
+
+    test()
