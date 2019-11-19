@@ -31,12 +31,22 @@ def get_mysql():
     return df
 
 
-def test():
+def test_block_compare(body):
     conn = stomp.Connection10([('192.168.10.109', 61613)])
     conn.connect()
     conn.send(
-        body='{"cityCode": "nj", "platformId": 1, "blockName": "大地伊丽雅特湾", "blockId": "2511053949548"}',
+        body=body,
         destination='/queue/block_compare')
+    time.sleep(2)
+    conn.disconnect()
+
+
+def test_block_compare(body):
+    conn = stomp.Connection10([('192.168.10.109', 61613)])
+    conn.connect()
+    conn.send(
+        body=body,
+        destination='/queue/handler')
     time.sleep(2)
     conn.disconnect()
 
@@ -54,11 +64,14 @@ def block_test():
     return df
 
 
-if __name__ == '__main__':
-    # df = block_test()
-    # datas = df.to_json(orient='records')
-    # objects = json.loads(datas)
-    # for object in objects:
-    #     print(json.dumps(object, ensure_ascii=False))
+def sell_test():
+    pass
 
-    test()
+
+
+if __name__ == '__main__':
+    df = block_test()
+    datas = df.to_json(orient='records')
+    objects = json.loads(datas)
+    for object in objects:
+        test_block_compare(json.dumps(object, ensure_ascii=False))

@@ -8,20 +8,21 @@ from pandas.io.json import json_normalize
 import json
 from apscheduler.schedulers.blocking import BlockingScheduler
 import pytz
+import os
 
 mysql_df = None
 
 
 def save(df):
     engine = create_engine(
-        "mysql+pymysql://root:idontcare@192.168.105.106/house_developcenter?charset=utf8",
+        py_targe_mysql,
         max_overflow=0,
         pool_size=5,
         pool_timeout=30,
         pool_recycle=-1
     )
 
-    df.to_sql('block_compare', con=engine, if_exists='append', index=False)
+    df.to_sql('crawl_block_compare', con=engine, if_exists='append', index=False)
 
 
 def compare(tmp_df):
@@ -42,7 +43,7 @@ def mysql_df():
     global mysql_df
     sql = "select id as local_block_id  ,blockname as local_block_name from block"
     engine = create_engine(
-        "mysql+pymysql://root:idontcare@202.102.74.70/house?charset=utf8",
+        py_offical_mysql,
         max_overflow=0,
         pool_size=5,
         pool_timeout=30,
@@ -64,6 +65,13 @@ class MyListener(object):
             save(save_df)
         except:
             print(traceback.print_exc())
+
+
+def get_config():
+    global py_offical_mysql
+    global py_targe_mysql
+    py_offical_mysql = os.getenv('PY_OFFICAL_MYSQL')
+    py_targe_mysql = os.getenv('PY_TARGE_MYSQL')
 
 
 def begin():
