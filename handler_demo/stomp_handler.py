@@ -12,7 +12,8 @@ import pytz
 mysql_df = None
 
 
-def save(df):
+
+def save_sell(df):
     engine = create_engine(
         "mysql+pymysql://root:idontcare@192.168.105.106/house_developcenter?charset=utf8",
         max_overflow=0,
@@ -20,8 +21,22 @@ def save(df):
         pool_timeout=30,
         pool_recycle=-1
     )
-
     df.to_sql('sell_compare', con=engine, if_exists='append', index=False)
+    id = pd.read_sql_query('select ifnull(max(id),0) from sell_compare', con=engine).iloc[0, 0]
+    print(id)
+    return id
+
+
+def save_relation(df):
+    if df is not None:
+        engine = create_engine(
+            "mysql+pymysql://root:idontcare@192.168.105.106/house_developcenter?charset=utf8",
+            max_overflow=0,
+            pool_size=5,
+            pool_timeout=30,
+            pool_recycle=-1
+        )
+        df.to_sql('crawl_relation', con=engine, if_exists='append', index=False)
 
 
 def custom(df, temp):
@@ -48,16 +63,18 @@ def custom(df, temp):
     return df
 
 
-def compare(tmp_df):
+def compare(tmp_df, target_id):
     blockName = tmp_df.loc[0, 'blockName']
     filter_df = filter_blockName(blockName)
     if len(filter_df) > 0:
         filter_df = filter_df.apply(custom, args=(tmp_df,), axis=1)
-        filter_df = filter_df.reset_index()
-        target = filter_df.iloc[filter_df['percent'].idxmax()]
-        tmp_df['percent'] = target['percent']
-        tmp_df['official_id'] = target['id']
-    return tmp_df
+        target = filter_df.sort_values(['percent'], ascending=False)
+        target = target.head(5)
+        target = target[['official_id', 'percent']]
+        target['crawl_id'] = target_id
+        return target
+    else:
+        return None
 
 
 def filter_blockName(blockName):
@@ -67,7 +84,7 @@ def filter_blockName(blockName):
 
 def mysql_df():
     global mysql_df
-    sql = "select id,district,address,blockshowname,buildarea,floor,totalfloor,price,averprice,room from sell where is_real_house=1"
+    sql = "select id as official_id,district,address,blockshowname,buildarea,floor,totalfloor,price,averprice,room from sell where is_real_house=1"
     engine = create_engine(
         "mysql+pymysql://root:idontcare@202.102.74.70/house?charset=utf8",
         max_overflow=0,
@@ -88,15 +105,16 @@ class MyListener(object):
         try:
             df = json_normalize(json.loads(message))
             df['buildArea'] = pd.to_numeric(df['buildArea'])
-            save_df = compare(df)
-            save(save_df)
+            id = save_sell(df)
+            df_relation = compare(df, id)
+            save_relation(df_relation)
         except:
             print(traceback.print_exc())
 
 
 def begin():
     mysql_df()
-    conn = stomp.Connection10([('localhost', 61613)], auto_content_length=False)
+    conn = stomp.Connection10([('192.168.10.221', 61613)], auto_content_length=False)
     conn.set_listener('', MyListener())
     conn.start()
     conn.connect(wait=True)
@@ -110,5 +128,5 @@ if __name__ == '__main__':
     scheduler = BlockingScheduler(timezone=timez)
     scheduler.add_executor('processpool')
     scheduler.add_job(begin, 'cron', hour=23, minute=20, second=00, misfire_grace_time=30)
-    scheduler.start()
-    # begin()
+    # scheduler.start()
+    begin()
