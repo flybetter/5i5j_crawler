@@ -22,7 +22,7 @@ def save_sell(df):
         pool_recycle=-1
     )
     df.to_sql('crawl_sell_compare', con=engine, if_exists='append', index=False)
-    id = pd.read_sql_query('select ifnull(max(id),0) from sell_compare', con=engine).iloc[0, 0]
+    id = pd.read_sql_query('select ifnull(max(id),0) from crawl_sell_compare', con=engine).iloc[0, 0]
     return id
 
 
@@ -116,6 +116,7 @@ def get_config():
     global py_target_mysql
     py_offical_mysql = os.getenv('PY_OFFICAL_MYSQL')
     py_target_mysql = os.getenv('PY_TARGET_MYSQL')
+
 
 def begin():
     get_config()
