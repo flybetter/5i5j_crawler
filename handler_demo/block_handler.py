@@ -15,7 +15,7 @@ mysql_df = None
 
 def save(df):
     engine = create_engine(
-        py_targe_mysql,
+        py_target_mysql,
         max_overflow=0,
         pool_size=5,
         pool_timeout=30,
@@ -69,12 +69,13 @@ class MyListener(object):
 
 def get_config():
     global py_offical_mysql
-    global py_targe_mysql
+    global py_target_mysql
     py_offical_mysql = os.getenv('PY_OFFICAL_MYSQL')
-    py_targe_mysql = os.getenv('PY_TARGE_MYSQL')
+    py_target_mysql = os.getenv('PY_TARGET_MYSQL')
 
 
 def begin():
+    get_config()
     mysql_df()
     conn = stomp.Connection10([('localhost', 61613)], auto_content_length=False)
     conn.set_listener('', MyListener())

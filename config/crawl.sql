@@ -106,13 +106,31 @@ create table crawl_sell_compare
 )
     engine = InnoDB;
 
+-- auto-generated definition
 create table crawl_relation
 (
-    id               bigint auto_increment primary key,
-    crawl_id         varchar(50)                         null,
-    official_id       varchar(50)                             null,
-    precent        varchar(50)                        null
-)engine = InnoDB;
+    id            bigint auto_increment
+        primary key,
+    crawl_id      varchar(50)           null,
+    official_id   varchar(50)           null,
+    percent       varchar(50)           null,
+    is_process    tinyint(2) default 0  null comment '标记处理 0：未处理 1：已处理',
+    district      varchar(8) default '' not null,
+    address       varchar(60)           null,
+    blockshowname varchar(20)           null,
+    buildarea     double(8, 2)          null,
+    floor         tinyint(2)            null,
+    totalfloor    tinyint(2)            null,
+    price         double(8, 2)          null,
+    averprice     double(8, 2)          null,
+    room          tinyint(2)            null,
+    blockid       int(11) unsigned      null,
+    forward       varchar(2)            null,
+    streetid      smallint(3) unsigned  null
+)
+    engine = InnoDB
+    charset = utf8mb4;
+
 
 
 

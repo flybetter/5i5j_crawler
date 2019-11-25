@@ -69,7 +69,7 @@ def compare(tmp_df, target_id):
         filter_df = filter_df.apply(custom, args=(tmp_df,), axis=1)
         target = filter_df.sort_values(['percent'], ascending=False)
         target = target.head(5)
-        target = target[['official_id', 'percent']]
+        # target = target[['official_id', 'percent']]
         target['crawl_id'] = target_id
         return target
     else:
@@ -83,7 +83,7 @@ def filter_blockName(blockName):
 
 def mysql_df():
     global mysql_df
-    sql = "select id as official_id,district,address,blockshowname,buildarea,floor,totalfloor,price,averprice,room from sell where is_real_house=1"
+    sql = "select id as official_id,district,address,blockshowname,buildarea,floor,totalfloor,price,averprice,room,blockid,forward,streetid  from sell where is_real_house=1"
     engine = create_engine(
         py_offical_mysql,
         max_overflow=0,
