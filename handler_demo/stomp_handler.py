@@ -43,7 +43,8 @@ def custom(df, temp):
 
     model_parameter = np.maximum(30 - np.abs(df['room'] - temp.loc[0, 'roomCount']) * 0.5 * 30, 0)
 
-    price_parameter = np.maximum(20 - np.abs(df['price'] - temp.loc[0, 'totalPrice']) * 0.1 * 20, 0)
+    price_parameter = np.maximum(20 - np.abs(df['price'] - temp.loc[0, 'totalPrice']) / (df['price'] * 0.01) * 0.1 * 20,
+                                 0)
 
     list = range(df['totalfloor'])
 
