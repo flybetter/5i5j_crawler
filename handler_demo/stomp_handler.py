@@ -46,7 +46,7 @@ def custom(df, temp):
     price_parameter = np.maximum(20 - np.abs(df['price'] - temp.loc[0, 'totalPrice']) / (df['price'] * 0.01) * 0.1 * 20,
                                  0)
 
-    list = range(df['totalfloor'])
+    list = range(1, df['totalfloor'] + 1)
 
     divide = round(df['totalfloor'] / 3)
 
@@ -57,6 +57,8 @@ def custom(df, temp):
     for i, v in enumerate(sub_lists):
         if df['floor'] in v:
             if i + 1 == temp.loc[0, 'floorCode']:
+                floor_parameter = 15
+            elif temp.loc[0, 'floorCode'] == 3 and i > 3:
                 floor_parameter = 15
 
     df['percent'] = round(area_parameter + model_parameter + price_parameter + floor_parameter)
