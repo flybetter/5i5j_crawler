@@ -46,20 +46,19 @@ def custom(df, temp):
     price_parameter = np.maximum(20 - np.abs(df['price'] - temp.loc[0, 'totalPrice']) / (df['price'] * 0.01) * 0.1 * 20,
                                  0)
 
-    list = range(1, df['totalfloor'] + 1)
-
-    divide = round(df['totalfloor'] / 3)
-
-    sub_lists = [list[i:i + divide] for i in range(df['totalfloor']) if i % divide == 0]
-
     floor_parameter = 0
 
-    for i, v in enumerate(sub_lists):
-        if df['floor'] in v:
-            if i + 1 == temp.loc[0, 'floorCode']:
-                floor_parameter = 15
-            elif temp.loc[0, 'floorCode'] == 3 and i > 3:
-                floor_parameter = 15
+    rate = df['floor'] / df['totalfloor']
+
+    if rate < 0.334:
+        temp_floor_code = 1
+    elif rate < 0.667:
+        temp_floor_code = 2
+    else:
+        temp_floor_code = 3
+
+    if temp.loc[0, 'floorCode'] == temp_floor_code:
+        floor_parameter = 15
 
     df['percent'] = round(area_parameter + model_parameter + price_parameter + floor_parameter)
     return df
@@ -124,7 +123,7 @@ def get_config():
 def begin():
     get_config()
     mysql_df()
-    conn = stomp.Connection10([('localhost', 61613)], auto_content_length=False)
+    conn = stomp.Connection10([('192.168.10.221', 61613)], auto_content_length=False)
     conn.set_listener('', MyListener())
     conn.start()
     conn.connect(wait=True)
