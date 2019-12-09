@@ -52,9 +52,10 @@ def test_block_compare(body):
 
 
 def block_test():
-    sql = "select city_code as cityCode , platform_id as platformId ,block_name as blockName ,block_id as blockId from block limit 100"
+    # sql = "select *  from crawl_sell_compare where id=21169;"
+    sql = "select cityCode,platformId,houseId,url,title,district,subDistrict,blockName,blockId,totalPrice,unitPrice,roomCount,hallCount,toiletCount,totalFloor,floorCode,forward,decoration,buildArea,buildYear,propertyRightYear,listTime,hasLift from     crawl_sell_compare_copy order by id desc limit 10000;"
     engine = create_engine(
-        "mysql+pymysql://root:idontcare@192.168.105.106/house_developcenter?charset=utf8",
+        "mysql+pymysql://root:idontcare@192.168.105.106/house?charset=utf8",
         max_overflow=0,
         pool_size=5,
         pool_timeout=30,
@@ -64,14 +65,37 @@ def block_test():
     return df
 
 
-def sell_test():
-    pass
+def send(json):
+    conn = stomp.Connection10([('192.168.10.221', 61613)])
+    conn.connect()
+    conn.send(
+        body=json,
+        destination='/queue/handler')
+    # time.sleep(1)
+    conn.disconnect()
 
 
-
-if __name__ == '__main__':
+def demo2():
     df = block_test()
     datas = df.to_json(orient='records')
     objects = json.loads(datas)
+    conn = stomp.Connection10([('192.168.10.109', 61613)])
+    conn.connect()
     for object in objects:
-        test_block_compare(json.dumps(object, ensure_ascii=False))
+        # test_block_compare(json.dumps(object, ensure_ascii=False))
+        # print(json.dumps(object, ensure_ascii=False)
+        conn.send(
+            body=json.dumps(object, ensure_ascii=False),
+            destination='/queue/handler')
+    conn.disconnect()
+
+
+if __name__ == '__main__':
+    # df = block_test()
+    # datas = df.to_json(orient='records')
+    # objects = json.loads(datas)
+    # for object in objects:
+    #     # test_block_compare(json.dumps(object, ensure_ascii=False))
+    #     # print(json.dumps(object, ensure_ascii=False)
+    #     send(json.dumps(object, ensure_ascii=False))
+    demo2()

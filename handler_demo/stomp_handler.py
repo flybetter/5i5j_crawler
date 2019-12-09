@@ -64,6 +64,31 @@ def custom(df, temp):
     return df
 
 
+def top5(tmp_df):
+    blockName = tmp_df.loc[0, 'blockName']
+    filter_df = filter_blockName(blockName)
+    if len(filter_df) > 0:
+        filter_df = filter_df.apply(custom, args=(tmp_df,), axis=1)
+        target = filter_df.sort_values(['percent'], ascending=False)
+        target = target.head(5)
+        return target
+    else:
+        return None
+
+
+def save_all(tmp_df, target):
+    if target is not None:
+        tmp_target = target.reset_index()
+        object = tmp_target.iloc[tmp_target['percent'].idxmax()]
+        tmp_df['percent'] = object['percent']
+        tmp_df['official_id'] = object['official_id']
+        id = save_sell(tmp_df)
+        target['crawl_id'] = id
+        save_relation(target)
+    else:
+        save_sell(tmp_df)
+
+
 def compare(tmp_df, target_id):
     blockName = tmp_df.loc[0, 'blockName']
     filter_df = filter_blockName(blockName)
@@ -85,7 +110,7 @@ def filter_blockName(blockName):
 
 def mysql_df():
     global mysql_df
-    sql = "select id as official_id,district,address,blockshowname,buildarea,floor,totalfloor,price,averprice,room,blockid,forward,streetid  from sell where is_real_house=1"
+    sql = "select id as official_id,district,address,blockshowname,buildarea,floor,totalfloor,price,averprice,room,blockid,forward,streetid  from sell where  esta=1"
     engine = create_engine(
         py_offical_mysql,
         max_overflow=0,
@@ -106,9 +131,8 @@ class MyListener(object):
         try:
             df = json_normalize(json.loads(message))
             df['buildArea'] = pd.to_numeric(df['buildArea'])
-            id = save_sell(df)
-            df_relation = compare(df, id)
-            save_relation(df_relation)
+            target = top5(df)
+            save_all(df, target)
         except:
             print(traceback.print_exc())
 
@@ -123,7 +147,7 @@ def get_config():
 def begin():
     get_config()
     mysql_df()
-    conn = stomp.Connection10([('192.168.10.221', 61613)], auto_content_length=False)
+    conn = stomp.Connection10([('localhost', 61613)], auto_content_length=False)
     conn.set_listener('', MyListener())
     conn.start()
     conn.connect(wait=True)

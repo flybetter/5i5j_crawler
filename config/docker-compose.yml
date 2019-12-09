@@ -4,7 +4,7 @@ services:
 
   stomp:
     container_name: stomp
-    image: flybetter/stomp:v3
+    image: flybetter/stomp:p3
     depends_on:
     - activemq
     environment:
@@ -15,7 +15,7 @@ services:
 
   blockCompare:
     container_name: block_handler
-    image: flybetter/block_handler:v1
+    image: flybetter/block_handler:p3
     environment:
     - PY_OFFICAL_MYSQL
     - PY_TARGET_MYSQL
@@ -41,7 +41,7 @@ services:
 
   house-repo:
     container_name: house-repo
-    image: flybetter/house-repo:v3
+    image: flybetter/house-repo:p1
     environment:
     - JAVA_MYSQL
     - USER
@@ -50,7 +50,7 @@ services:
 
   5i5j:
     container_name: 5i5j
-    image: flybetter/5i5j:v2
+    image: flybetter/5i5j:v3
     network_mode: "host"
 
   beike:
@@ -60,7 +60,7 @@ services:
 
   century21:
     container_name: century21
-    image: flybetter/century21:v2
+    image: flybetter/century21:v3
     network_mode: "host"
 
   lianjia:

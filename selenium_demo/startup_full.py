@@ -181,7 +181,7 @@ class BrowserEngine(object):
 
         body['hallCount'] = int(hall_count)
 
-        if len(counts) == 3:
+        if len(counts) == 4:
             toliet_count = counts[2]
             body['toiletCount'] = int(toliet_count)
         else:
@@ -232,8 +232,8 @@ class BrowserEngine(object):
 
 
 if __name__ == '__main__':
-    demo = BrowserEngine(url="https://nj.5i5j.com/ershoufang/n4/")
-    demo.action()
+    # demo = BrowserEngine(url="https://nj.5i5j.com/ershoufang/n4/")
+    # demo.action()
 
     # msg = "我爱你中文"
     # conn = stomp.Connection10([('192.168.105.105', 61613)], auto_content_length=False)
@@ -241,3 +241,8 @@ if __name__ == '__main__':
     # conn.connect()
     # conn.send(destination="/queue/SellHouseQueue", body=msg)
     # conn.disconnect()
+
+    counts = re.split('[\u4e00-\u9fa5]', "3室1厅1卫")
+    print(counts[0])
+    print(counts[1])
+    print(counts[2])
