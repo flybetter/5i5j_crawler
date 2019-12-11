@@ -10,8 +10,6 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 import pytz
 import os
 
-mysql_df = None
-
 
 def save_sell(df):
     engine = create_engine(
@@ -48,17 +46,19 @@ def custom(df, temp):
 
     floor_parameter = 0
 
-    rate = df['floor'] / df['totalfloor']
+    try:
+        rate = df['floor'] / df['totalfloor']
+        if rate < 0.334:
+            temp_floor_code = 1
+        elif rate < 0.667:
+            temp_floor_code = 2
+        else:
+            temp_floor_code = 3
 
-    if rate < 0.334:
-        temp_floor_code = 1
-    elif rate < 0.667:
-        temp_floor_code = 2
-    else:
-        temp_floor_code = 3
-
-    if temp.loc[0, 'floorCode'] == temp_floor_code:
-        floor_parameter = 15
+        if temp.loc[0, 'floorCode'] == temp_floor_code:
+            floor_parameter = 15
+    except:
+        pass
 
     df['percent'] = round(area_parameter + model_parameter + price_parameter + floor_parameter)
     return df
@@ -96,7 +96,6 @@ def compare(tmp_df, target_id):
         filter_df = filter_df.apply(custom, args=(tmp_df,), axis=1)
         target = filter_df.sort_values(['percent'], ascending=False)
         target = target.head(5)
-        # target = target[['official_id', 'percent']]
         target['crawl_id'] = target_id
         return target
     else:
@@ -118,8 +117,7 @@ def mysql_df():
         pool_timeout=30,
         pool_recycle=-1
     )
-    df = pd.read_sql(sql=sql, con=engine)
-    mysql_df = df
+    mysql_df = pd.read_sql(sql=sql, con=engine)
 
 
 class MyListener(object):
@@ -133,6 +131,7 @@ class MyListener(object):
             df['buildArea'] = pd.to_numeric(df['buildArea'])
             target = top5(df)
             save_all(df, target)
+            # time.sleep(1)
         except:
             print(traceback.print_exc())
 
@@ -161,5 +160,5 @@ if __name__ == '__main__':
     scheduler = BlockingScheduler(timezone=timez)
     scheduler.add_executor('processpool')
     scheduler.add_job(begin, 'cron', hour=23, minute=20, second=00, misfire_grace_time=30)
-    # scheduler.start()
-    begin()
+    scheduler.start()
+    # begin()

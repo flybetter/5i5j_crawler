@@ -53,9 +53,9 @@ def test_block_compare(body):
 
 def block_test():
     # sql = "select *  from crawl_sell_compare where id=21169;"
-    sql = "select cityCode,platformId,houseId,url,title,district,subDistrict,blockName,blockId,totalPrice,unitPrice,roomCount,hallCount,toiletCount,totalFloor,floorCode,forward,decoration,buildArea,buildYear,propertyRightYear,listTime,hasLift from     crawl_sell_compare_copy order by id desc limit 10000;"
+    sql = "select cityCode,platformId,houseId,url,title,district,subDistrict,blockName,blockId,totalPrice,unitPrice,roomCount,hallCount,toiletCount,totalFloor,floorCode,forward,decoration,buildArea,buildYear,propertyRightYear,listTime,hasLift from     crawl_sell_compare where  date_format(create_time,'%%Y-%%m-%%d') ='2019-12-10'"
     engine = create_engine(
-        "mysql+pymysql://root:idontcare@192.168.105.106/house?charset=utf8",
+        "mysql+pymysql://root:idontcare@202.102.74.70/house?charset=utf8",
         max_overflow=0,
         pool_size=5,
         pool_timeout=30,
