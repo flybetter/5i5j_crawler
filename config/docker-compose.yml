@@ -1,10 +1,10 @@
-ersion: '2'
+version: '2'
 
 services:
 
   stomp:
     container_name: stomp
-    image: flybetter/stomp:p3
+    image: flybetter/stomp:p4
     depends_on:
     - activemq
     environment:
@@ -48,6 +48,14 @@ services:
     - PASSWORD
     network_mode: "host"
 
+  stompFilter:
+    container_name: stomp_filter
+    image: flybetter/stomp_filter:v1
+    environment:
+    - PY_OFFICAL_MYSQL
+    - PY_TARGET_MYSQL
+    network_mode: "host"
+
   5i5j:
     container_name: 5i5j
     image: flybetter/5i5j:v3
@@ -67,3 +75,4 @@ services:
     container_name: lianjia
     image: flybetter/lianjia:v3
     network_mode: "host"
+
