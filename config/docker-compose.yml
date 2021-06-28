@@ -4,7 +4,7 @@ services:
 
   stomp:
     container_name: stomp
-    image: flybetter/stomp:p4
+    image: flybetter/stomp:p6
     depends_on:
     - activemq
     environment:
@@ -29,10 +29,7 @@ services:
     image: rmohr/activemq
     depends_on:
     - house-repo
-    - 5i5j
     - beike
-    - century21
-    - lianjia
     ports:
     - "8161:8161"
     - "61616:61616"
@@ -56,23 +53,9 @@ services:
     - PY_TARGET_MYSQL
     network_mode: "host"
 
-  5i5j:
-    container_name: 5i5j
-    image: flybetter/5i5j:v3
-    network_mode: "host"
 
   beike:
     container_name: beike
-    image: flybetter/beike:v2
-    network_mode: "host"
-
-  century21:
-    container_name: century21
-    image: flybetter/century21:v3
-    network_mode: "host"
-
-  lianjia:
-    container_name: lianjia
-    image: flybetter/lianjia:v3
+    image: flybetter/beike:v4
     network_mode: "host"
 
