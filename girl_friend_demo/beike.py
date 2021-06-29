@@ -5,6 +5,8 @@ from lxml import etree
 import json
 from pandas.io.json import json_normalize
 import re
+import pandas as pd
+
 
 
 def data_print(source):
@@ -19,8 +21,10 @@ def data_print(source):
 
 
 def save_function(results):
-    df = json_normalize(results)
-    df.to_csv("demo.csv")
+    df_1 = json_normalize(results)
+    df_2=df_1['desc'].str.split('/', expand=True)
+    df_1 = pd.concat([df_1, df_2], axis=1)
+    df_1.to_csv("demo.csv")
 
 
 def url_action(num):
@@ -47,6 +51,4 @@ if __name__ == '__main__':
     results = list()
     for i in range(1, 5):
         results.extend(url_action(i))
-
-    print(len(results))
     save_function(results)
