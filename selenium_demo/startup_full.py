@@ -232,8 +232,8 @@ class BrowserEngine(object):
 
 
 if __name__ == '__main__':
-    # demo = BrowserEngine(url="https://nj.5i5j.com/ershoufang/n4/")
-    # demo.action()
+    demo = BrowserEngine(url="https://nj.5i5j.com/ershoufang/n4/")
+    demo.action()
 
     # msg = "我爱你中文"
     # conn = stomp.Connection10([('192.168.105.105', 61613)], auto_content_length=False)
